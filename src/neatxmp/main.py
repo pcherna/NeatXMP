@@ -7,6 +7,7 @@ from pathlib import Path
 import dearpygui.dearpygui as dpg
 
 from .date_parser import find_date_in_name, format_xmp_date
+from .settings import load as load_settings, save as save_settings
 from .xmp_writer import apply_date_to_xmp
 
 MEDIA_EXTENSIONS = frozenset({".jpg", ".jpeg", ".png", ".heic", ".mp4", ".mov"})
@@ -31,13 +32,17 @@ def main() -> None:
     ):
         pass
 
+    _settings = load_settings()
+    global _folder
+    _folder = _settings.get("last_folder", "")
+
     with dpg.window(label="NeatXMP", tag="primary_window"):
 
         # --- Folder selector ---
         dpg.add_text("Folder")
         with dpg.group(horizontal=True):
             dpg.add_button(label="Browse...", callback=lambda: dpg.show_item("folder_dialog"))
-            dpg.add_text("(none)", tag="folder_display")
+            dpg.add_text(_folder or "(none)", tag="folder_display")
 
         dpg.add_spacer(height=8)
         dpg.add_separator()
@@ -111,6 +116,7 @@ def _on_folder_selected(sender: str, app_data: dict) -> None:
         return
     _folder = str(Path(folder).resolve())
     dpg.set_value("folder_display", _folder)
+    save_settings({"last_folder": _folder})
 
 
 # ---------------------------------------------------------------------------
