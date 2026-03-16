@@ -9,7 +9,7 @@ import dearpygui.dearpygui as dpg
 
 from .date_parser import find_date_in_name, format_xmp_date
 from .settings import load as load_settings, save as save_settings
-from .xmp_reader import read_xmp_dates
+from .xmp_reader import read_all_xmp_fields, read_xmp_dates
 from .xmp_writer import apply_date_to_xmp
 
 MEDIA_EXTENSIONS = frozenset({".jpg", ".jpeg", ".png", ".heic", ".mp4", ".mov"})
@@ -69,6 +69,13 @@ def main() -> None:
                 label="Scan",
                 callback=_scan,
                 width=100,
+                height=40,
+            )
+            dpg.add_spacer(width=4)
+            dpg.add_button(
+                label="Detailed Scan",
+                callback=_detailed_scan,
+                width=140,
                 height=40,
             )
             dpg.add_spacer(width=8)
@@ -215,6 +222,37 @@ def _scan() -> None:
     for name, fs_date, xmp_col in rows:
         _log(f"  {name:<{w0}}  {fs_date:<{w1}}  {xmp_col}")
     _log("")
+
+
+def _detailed_scan() -> None:
+    folder = _current_folder()
+    if folder is None:
+        return
+
+    files = _media_files(folder)
+    _log(f"[DETAILED SCAN] {folder.name}  ({len(files)} media file(s))\n")
+
+    if not files:
+        _log("  (no matching media files)")
+        return
+
+    for media_file in files:
+        xmp_path = media_file.with_suffix(".xmp")
+        _log(f"  {media_file.name}")
+
+        if not xmp_path.exists():
+            _log("    (no XMP sidecar)\n")
+            continue
+
+        fields = read_all_xmp_fields(xmp_path)
+        if not fields:
+            _log("    (sidecar exists but contains no fields)\n")
+            continue
+
+        label_width = max(len(label) for label, _ in fields)
+        for label, value in fields:
+            _log(f"    {label:<{label_width}}  {value}")
+        _log("")
 
 
 def _apply_folder_date() -> None:
