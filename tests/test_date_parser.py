@@ -16,6 +16,7 @@ from neatxmp.date_parser import find_date_in_name, format_xmp_date, parse_date
 # format_xmp_date
 # ---------------------------------------------------------------------------
 
+
 class TestFormatXmpDate:
     def test_year_only(self):
         assert format_xmp_date((1988, None, None)) == "1988"
@@ -40,20 +41,27 @@ class TestFormatXmpDate:
 # parse_date — named month + year
 # ---------------------------------------------------------------------------
 
+
 class TestNamedMonthYear:
-    @pytest.mark.parametrize("name", [
-        "Nov 2018",
-        "nov 2018",
-        "NOV 2018",
-    ])
+    @pytest.mark.parametrize(
+        "name",
+        [
+            "Nov 2018",
+            "nov 2018",
+            "NOV 2018",
+        ],
+    )
     def test_short_name_space(self, name):
         assert parse_date(name) == (2018, 11, None)
 
-    @pytest.mark.parametrize("name", [
-        "November 2018",
-        "november 2018",
-        "NOVEMBER 2018",
-    ])
+    @pytest.mark.parametrize(
+        "name",
+        [
+            "November 2018",
+            "november 2018",
+            "NOVEMBER 2018",
+        ],
+    )
     def test_full_name_space(self, name):
         assert parse_date(name) == (2018, 11, None)
 
@@ -69,21 +77,24 @@ class TestNamedMonthYear:
     def test_underscore_separator(self):
         assert parse_date("2018_Nov") == (2018, 11, None)
 
-    @pytest.mark.parametrize("name, expected_month", [
-        ("Jan 2020", 1),
-        ("February 2020", 2),
-        ("Mar 2020", 3),
-        ("April 2020", 4),
-        ("May 2020", 5),
-        ("Jun 2020", 6),
-        ("July 2020", 7),
-        ("Aug 2020", 8),
-        ("Sep 2020", 9),
-        ("Sept 2020", 9),
-        ("October 2020", 10),
-        ("Nov 2020", 11),
-        ("December 2020", 12),
-    ])
+    @pytest.mark.parametrize(
+        "name, expected_month",
+        [
+            ("Jan 2020", 1),
+            ("February 2020", 2),
+            ("Mar 2020", 3),
+            ("April 2020", 4),
+            ("May 2020", 5),
+            ("Jun 2020", 6),
+            ("July 2020", 7),
+            ("Aug 2020", 8),
+            ("Sep 2020", 9),
+            ("Sept 2020", 9),
+            ("October 2020", 10),
+            ("Nov 2020", 11),
+            ("December 2020", 12),
+        ],
+    )
     def test_all_month_names(self, name, expected_month):
         assert parse_date(name) == (2020, expected_month, None)
 
@@ -91,6 +102,7 @@ class TestNamedMonthYear:
 # ---------------------------------------------------------------------------
 # parse_date — numeric with separator, two parts
 # ---------------------------------------------------------------------------
+
 
 class TestNumericTwoParts:
     def test_mm_yyyy_hyphen(self):
@@ -112,6 +124,7 @@ class TestNumericTwoParts:
 # ---------------------------------------------------------------------------
 # parse_date — numeric with separator, three parts
 # ---------------------------------------------------------------------------
+
 
 class TestNumericThreeParts:
     def test_yyyy_mm_dd(self):
@@ -139,6 +152,7 @@ class TestNumericThreeParts:
 # parse_date — compact 6-digit
 # ---------------------------------------------------------------------------
 
+
 class TestSixDigits:
     def test_yyyymm(self):
         assert parse_date("201811") == (2018, 11, None)
@@ -158,6 +172,7 @@ class TestSixDigits:
 # parse_date — compact 8-digit
 # ---------------------------------------------------------------------------
 
+
 class TestEightDigits:
     def test_yyyymmdd(self):
         assert parse_date("20181101") == (2018, 11, 1)
@@ -176,6 +191,7 @@ class TestEightDigits:
 # ---------------------------------------------------------------------------
 # parse_date — compact no-separator with named month
 # ---------------------------------------------------------------------------
+
 
 class TestCompactNamedMonth:
     def test_dd_mon_yyyy(self):
@@ -201,6 +217,7 @@ class TestCompactNamedMonth:
 # parse_date — named month with day and separator
 # ---------------------------------------------------------------------------
 
+
 class TestDayNamedMonthYear:
     def test_dd_mon_yyyy_hyphen(self):
         assert parse_date("01-Nov-2018") == (2018, 11, 1)
@@ -222,12 +239,13 @@ class TestDayNamedMonthYear:
 # find_date_in_name — embedded extraction
 # ---------------------------------------------------------------------------
 
+
 class TestFindDateInName:
     def test_yyyymmdd_in_camera_filename(self):
         assert find_date_in_name("IMG_20181101_123456") == (2018, 11, 1)
 
     def test_compact_named_at_start(self):
-        assert find_date_in_name("25Mar1988 Plumbers Ball copy") == (1988, 3, 25)
+        assert find_date_in_name("25Mar1988 Ball") == (1988, 3, 25)
 
     def test_compact_named_with_trailing_text(self):
         assert find_date_in_name("11Nov2018 family dinner") == (2018, 11, 11)
@@ -256,6 +274,7 @@ class TestFindDateInName:
 # Invalid / unparseable inputs
 # ---------------------------------------------------------------------------
 
+
 class TestYearOnly:
     def test_bare_year(self):
         assert parse_date("1988") == (1988, None, None)
@@ -281,22 +300,25 @@ class TestYearOnly:
 
 
 class TestInvalidInputs:
-    @pytest.mark.parametrize("name", [
-        "",
-        "   ",
-        "hello world",
-        "abc",
-        "12345",        # 5 digits — not a valid pattern
-        "1234567",      # 7 digits
-        "123456789",    # 9 digits
-        "Xyz 2018",     # not a month name
-        "13-2018",      # month 13 invalid
-        "00-2018",      # month 0 invalid
-        "2018-13",      # month 13 invalid
-        "32-01-2018",   # day 32 invalid
-        "2018-02-30",   # Feb 30 doesn't exist
-        "99991301",     # month 13 in compact form
-    ])
+    @pytest.mark.parametrize(
+        "name",
+        [
+            "",
+            "   ",
+            "hello world",
+            "abc",
+            "12345",  # 5 digits — not a valid pattern
+            "1234567",  # 7 digits
+            "123456789",  # 9 digits
+            "Xyz 2018",  # not a month name
+            "13-2018",  # month 13 invalid
+            "00-2018",  # month 0 invalid
+            "2018-13",  # month 13 invalid
+            "32-01-2018",  # day 32 invalid
+            "2018-02-30",  # Feb 30 doesn't exist
+            "99991301",  # month 13 in compact form
+        ],
+    )
     def test_returns_none(self, name):
         assert parse_date(name) is None
 
@@ -307,6 +329,7 @@ class TestInvalidInputs:
 # ---------------------------------------------------------------------------
 # Edge cases
 # ---------------------------------------------------------------------------
+
 
 class TestEdgeCases:
     def test_leap_day(self):

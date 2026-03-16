@@ -61,7 +61,7 @@ Always run **Preview** first to confirm the dates look right, then switch to **A
 
 ## Supported date formats
 
-The parser handles a wide range of formats, with or without separators, and both standalone and embedded in longer names (e.g. `"25Mar1988 Plumbers Ball"` or `"IMG_20181101_123456"`).
+The parser handles a wide range of formats, with or without separators, and both standalone and embedded in longer names (e.g. `"25Mar1988 Ball"` or `"IMG_20181101_123456"`).
 
 | Example | Parsed as |
 |---------|-----------|

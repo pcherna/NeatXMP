@@ -82,7 +82,7 @@ For compact six-digit strings, YYYYMM is tried first (year range validates it); 
 
 ### `find_date_in_name(name)` — substring search
 
-Used for both folder names and file names, since either may contain a date embedded in longer text (e.g. `"25Mar1988 Plumbers Ball"`, `"IMG_20181101_123456"`).
+Used for both folder names and file names, since either may contain a date embedded in longer text (e.g. `"25Mar1988 Ball"`, `"IMG_20181101_123456"`).
 
 First tries `parse_date` on the full string. If that fails, tries in order:
 

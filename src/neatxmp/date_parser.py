@@ -17,18 +17,30 @@ import re
 from typing import Optional
 
 MONTH_NAMES: dict[str, int] = {
-    "jan": 1, "january": 1,
-    "feb": 2, "february": 2,
-    "mar": 3, "march": 3,
-    "apr": 4, "april": 4,
+    "jan": 1,
+    "january": 1,
+    "feb": 2,
+    "february": 2,
+    "mar": 3,
+    "march": 3,
+    "apr": 4,
+    "april": 4,
     "may": 5,
-    "jun": 6, "june": 6,
-    "jul": 7, "july": 7,
-    "aug": 8, "august": 8,
-    "sep": 9, "sept": 9, "september": 9,
-    "oct": 10, "october": 10,
-    "nov": 11, "november": 11,
-    "dec": 12, "december": 12,
+    "jun": 6,
+    "june": 6,
+    "jul": 7,
+    "july": 7,
+    "aug": 8,
+    "august": 8,
+    "sep": 9,
+    "sept": 9,
+    "september": 9,
+    "oct": 10,
+    "october": 10,
+    "nov": 11,
+    "november": 11,
+    "dec": 12,
+    "december": 12,
 }
 
 # (year, month_or_None, day_or_None)
@@ -77,8 +89,12 @@ def find_date_in_name(name: str) -> Optional[DateResult]:
             return r
 
     # DDMonYYYY / MonDDYYYY / YYYYMonDD compact form embedded in string
-    # e.g. "25Mar1988 Plumbers Ball copy" -> 25Mar1988
-    for pattern in (r"(\d{1,2})([A-Za-z]+)(\d{4})", r"([A-Za-z]+)(\d{1,2})(\d{4})", r"(\d{4})([A-Za-z]+)(\d{1,2})"):
+    # e.g. "25Mar1988 Ball" -> 25Mar1988
+    for pattern in (
+        r"(\d{1,2})([A-Za-z]+)(\d{4})",
+        r"([A-Za-z]+)(\d{1,2})(\d{4})",
+        r"(\d{4})([A-Za-z]+)(\d{1,2})",
+    ):
         m = re.search(pattern, name)
         if m:
             groups = m.groups()
@@ -127,7 +143,10 @@ def format_xmp_date(parsed: DateResult) -> str:
 # Internal parsers
 # ---------------------------------------------------------------------------
 
-def _valid(y: int, m: Optional[int] = None, d: Optional[int] = None) -> Optional[DateResult]:
+
+def _valid(
+    y: int, m: Optional[int] = None, d: Optional[int] = None
+) -> Optional[DateResult]:
     if not (1900 <= y <= 2100):
         return None
     if m is None:
