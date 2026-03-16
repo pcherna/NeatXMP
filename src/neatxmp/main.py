@@ -11,7 +11,7 @@ from .xmp_writer import apply_date_to_xmp
 
 MEDIA_EXTENSIONS = frozenset({".jpg", ".jpeg", ".png", ".heic", ".mp4", ".mov"})
 
-_folders: list[str] = []
+_folder: str = ""
 
 
 # ---------------------------------------------------------------------------
@@ -21,7 +21,6 @@ _folders: list[str] = []
 def main() -> None:
     dpg.create_context()
 
-    # Directory-picker dialog (hidden until "Add Folder" is clicked)
     with dpg.file_dialog(
         directory_selector=True,
         show=False,
@@ -34,12 +33,11 @@ def main() -> None:
 
     with dpg.window(label="NeatXMP", tag="primary_window"):
 
-        # --- Folder list ---
-        dpg.add_text("Folders")
-        dpg.add_listbox(tag="folder_list", items=[], width=-1, num_items=6)
+        # --- Folder selector ---
+        dpg.add_text("Folder")
         with dpg.group(horizontal=True):
-            dpg.add_button(label="Add Folder", callback=lambda: dpg.show_item("folder_dialog"))
-            dpg.add_button(label="Remove Selected", callback=_remove_folder)
+            dpg.add_button(label="Browse...", callback=lambda: dpg.show_item("folder_dialog"))
+            dpg.add_text("(none)", tag="folder_display")
 
         dpg.add_spacer(height=8)
         dpg.add_separator()
@@ -47,13 +45,12 @@ def main() -> None:
 
         # --- Mode toggle ---
         dpg.add_text("Mode")
-        with dpg.group(horizontal=True):
-            dpg.add_radio_button(
-                tag="mode_radio",
-                items=["Preview (dry run)", "Apply (write files)"],
-                default_value="Preview (dry run)",
-                horizontal=True,
-            )
+        dpg.add_radio_button(
+            tag="mode_radio",
+            items=["Preview (dry run)", "Apply (write files)"],
+            default_value="Preview (dry run)",
+            horizontal=True,
+        )
 
         dpg.add_spacer(height=8)
         dpg.add_separator()
@@ -104,24 +101,16 @@ def main() -> None:
 
 
 # ---------------------------------------------------------------------------
-# Folder list callbacks
+# Folder selection
 # ---------------------------------------------------------------------------
 
 def _on_folder_selected(sender: str, app_data: dict) -> None:
+    global _folder
     folder = app_data.get("file_path_name", "").strip()
     if not folder:
         return
-    folder = str(Path(folder).resolve())
-    if folder not in _folders:
-        _folders.append(folder)
-        dpg.configure_item("folder_list", items=_folders)
-
-
-def _remove_folder() -> None:
-    selected = dpg.get_value("folder_list")
-    if selected in _folders:
-        _folders.remove(selected)
-        dpg.configure_item("folder_list", items=_folders)
+    _folder = str(Path(folder).resolve())
+    dpg.set_value("folder_display", _folder)
 
 
 # ---------------------------------------------------------------------------
@@ -158,74 +147,76 @@ def _apply_or_preview(media_file: Path, date_str: str, preview: bool) -> None:
         _log(f"  [ok]      {media_file.name}  ->  {date_str}")
 
 
+def _current_folder() -> Path | None:
+    if not _folder:
+        _log("No folder selected.")
+        return None
+    return Path(_folder)
+
+
 # ---------------------------------------------------------------------------
 # Action callbacks
 # ---------------------------------------------------------------------------
 
 def _apply_folder_date() -> None:
-    if not _folders:
-        _log("No folders selected.")
+    folder = _current_folder()
+    if folder is None:
         return
 
     preview = _is_preview()
     mode_label = "PREVIEW" if preview else "APPLY"
 
-    for folder_str in _folders:
-        folder = Path(folder_str)
-        parsed = find_date_in_name(folder.name)
+    parsed = find_date_in_name(folder.name)
+    if not parsed:
+        _log(f"[{mode_label}] SKIP: cannot parse date from folder name {folder.name!r}")
+        return
 
-        if not parsed:
-            _log(f"[{mode_label}] SKIP folder {folder.name!r}: cannot parse date")
-            continue
+    date_str = format_xmp_date(parsed)
+    _log(f"[{mode_label}] {folder.name!r}  ->  {date_str}")
 
-        date_str = format_xmp_date(parsed)
-        _log(f"[{mode_label}] Folder {folder.name!r}  ->  {date_str}")
+    files = _media_files(folder)
+    if not files:
+        _log("  (no matching media files)")
+        return
 
-        files = _media_files(folder)
-        if not files:
-            _log("  (no matching media files)")
-            continue
+    count = 0
+    for media_file in files:
+        try:
+            _apply_or_preview(media_file, date_str, preview)
+            count += 1
+        except Exception as exc:
+            _log(f"  [err]     {media_file.name}: {exc}")
 
-        count = 0
-        for media_file in files:
-            try:
-                _apply_or_preview(media_file, date_str, preview)
-                count += 1
-            except Exception as exc:
-                _log(f"  [err]     {media_file.name}: {exc}")
-
-        _log(f"  {count} file(s) {'would be' if preview else ''} updated.\n")
+    _log(f"  {count} file(s) {'would be ' if preview else ''}updated.\n")
 
 
 def _apply_file_date() -> None:
-    if not _folders:
-        _log("No folders selected.")
+    folder = _current_folder()
+    if folder is None:
         return
 
     preview = _is_preview()
     mode_label = "PREVIEW" if preview else "APPLY"
 
-    for folder_str in _folders:
-        folder = Path(folder_str)
-        _log(f"[{mode_label}] Folder {folder.name!r}")
+    _log(f"[{mode_label}] {folder.name!r}")
 
-        files = _media_files(folder)
-        if not files:
-            _log("  (no matching media files)")
+    files = _media_files(folder)
+    if not files:
+        _log("  (no matching media files)")
+        return
+
+    count = 0
+    for media_file in files:
+        parsed = find_date_in_name(media_file.stem)
+        if not parsed:
+            _log(f"  [skip]    {media_file.name}: no date found in filename")
             continue
 
-        count = 0
-        for media_file in files:
-            parsed = find_date_in_name(media_file.stem)
-            if not parsed:
-                _log(f"  [skip]    {media_file.name}: no date found in filename")
-                continue
+        date_str = format_xmp_date(parsed)
+        try:
+            _apply_or_preview(media_file, date_str, preview)
+            count += 1
+        except Exception as exc:
+            _log(f"  [err]     {media_file.name}: {exc}")
 
-            date_str = format_xmp_date(parsed)
-            try:
-                _apply_or_preview(media_file, date_str, preview)
-                count += 1
-            except Exception as exc:
-                _log(f"  [err]     {media_file.name}: {exc}")
-
-        _log(f"  {count} file(s) {'would be' if preview else ''} updated.\n")
+    _log(f"  {count} file(s) {'would be ' if preview else ''}updated.\n")
