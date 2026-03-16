@@ -17,23 +17,34 @@ from lxml import etree
 
 from neatxmp.xmp_writer import apply_date_to_xmp
 
-XMP_NS      = "adobe:ns:meta/"
-RDF_NS      = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
-XMP_BASIC_NS = "http://ns.adobe.com/xap/1.0/"
+XMP_NS        = "adobe:ns:meta/"
+RDF_NS        = "http://www.w3.org/1999/02/22-rdf-syntax-ns#"
+XMP_BASIC_NS  = "http://ns.adobe.com/xap/1.0/"
+PHOTOSHOP_NS  = "http://ns.adobe.com/photoshop/1.0/"
 
 
-def _read_create_date(xmp_path: Path) -> str:
-    """Parse an XMP file and return the xmp:CreateDate value."""
-    content = xmp_path.read_text(encoding="utf-8")
-    # Strip xpacket PIs before parsing
+def _parse_desc(xmp_path: Path):
     import re
+    content = xmp_path.read_text(encoding="utf-8")
     lines = [l for l in content.splitlines(keepends=True)
              if not re.match(r"\s*<\?xpacket", l.strip())]
     root = etree.fromstring("".join(lines).strip().encode("utf-8"))
     desc = root.find(f".//{{{RDF_NS}}}Description")
     assert desc is not None, "rdf:Description not found"
+    return desc
+
+
+def _read_create_date(xmp_path: Path) -> str:
+    desc = _parse_desc(xmp_path)
     key = f"{{{XMP_BASIC_NS}}}CreateDate"
     assert key in desc.attrib, f"xmp:CreateDate not found in {dict(desc.attrib)}"
+    return desc.attrib[key]
+
+
+def _read_photoshop_date(xmp_path: Path) -> str:
+    desc = _parse_desc(xmp_path)
+    key = f"{{{PHOTOSHOP_NS}}}DateCreated"
+    assert key in desc.attrib, f"photoshop:DateCreated not found in {dict(desc.attrib)}"
     return desc.attrib[key]
 
 
@@ -137,6 +148,15 @@ class TestCreateNewSidecar:
         assert "begin=" in content
         assert 'end="w"' in content
 
+    def test_photoshop_date_created(self, tmp_img):
+        apply_date_to_xmp(tmp_img, "2018-11")
+        assert _read_photoshop_date(tmp_img.with_suffix(".xmp")) == "2018-11"
+
+    def test_both_date_fields_match(self, tmp_img):
+        apply_date_to_xmp(tmp_img, "2018-11-01")
+        xmp = tmp_img.with_suffix(".xmp")
+        assert _read_create_date(xmp) == _read_photoshop_date(xmp)
+
     def test_utf8_encoding(self, tmp_img):
         apply_date_to_xmp(tmp_img, "2018-11")
         raw = tmp_img.with_suffix(".xmp").read_bytes()
@@ -186,6 +206,10 @@ class TestUpdateExistingSidecar:
     def test_no_xmp_namespace_declared(self, xmp_without_xmp_namespace):
         apply_date_to_xmp(xmp_without_xmp_namespace, "2018-11")
         assert _read_create_date(xmp_without_xmp_namespace.with_suffix(".xmp")) == "2018-11"
+
+    def test_photoshop_date_updated(self, xmp_with_date):
+        apply_date_to_xmp(xmp_with_date, "2018-11")
+        assert _read_photoshop_date(xmp_with_date.with_suffix(".xmp")) == "2018-11"
 
     def test_update_multiple_times(self, xmp_with_date):
         apply_date_to_xmp(xmp_with_date, "2018-11")

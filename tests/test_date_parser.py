@@ -17,6 +17,9 @@ from neatxmp.date_parser import find_date_in_name, format_xmp_date, parse_date
 # ---------------------------------------------------------------------------
 
 class TestFormatXmpDate:
+    def test_year_only(self):
+        assert format_xmp_date((1988, None, None)) == "1988"
+
     def test_month_only(self):
         assert format_xmp_date((2018, 11, None)) == "2018-11"
 
@@ -252,6 +255,30 @@ class TestFindDateInName:
 # ---------------------------------------------------------------------------
 # Invalid / unparseable inputs
 # ---------------------------------------------------------------------------
+
+class TestYearOnly:
+    def test_bare_year(self):
+        assert parse_date("1988") == (1988, None, None)
+
+    def test_bare_year_recent(self):
+        assert parse_date("2024") == (2024, None, None)
+
+    def test_year_embedded_with_prefix(self):
+        assert find_date_in_name("foo-1988") == (1988, None, None)
+
+    def test_year_embedded_with_suffix(self):
+        assert find_date_in_name("photos_2018_backup") == (2018, None, None)
+
+    def test_year_only_format(self):
+        assert format_xmp_date((1988, None, None)) == "1988"
+
+    def test_year_out_of_range_not_matched(self):
+        assert find_date_in_name("IMG_1234") is None
+
+    def test_more_specific_match_wins(self):
+        # "Nov 1988" should give month+year, not just year
+        assert find_date_in_name("Nov 1988") == (1988, 11, None)
+
 
 class TestInvalidInputs:
     @pytest.mark.parametrize("name", [

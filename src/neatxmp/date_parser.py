@@ -31,8 +31,8 @@ MONTH_NAMES: dict[str, int] = {
     "dec": 12, "december": 12,
 }
 
-# (year, month, day_or_None)
-DateResult = tuple[int, int, Optional[int]]
+# (year, month_or_None, day_or_None)
+DateResult = tuple[int, Optional[int], Optional[int]]
 
 
 def parse_date(name: str) -> Optional[DateResult]:
@@ -46,6 +46,7 @@ def parse_date(name: str) -> Optional[DateResult]:
         or _eight_digits(s)
         or _day_named_month_year(s)
         or _compact_named_month(s)
+        or _year_only(s)
     )
 
 
@@ -102,12 +103,21 @@ def find_date_in_name(name: str) -> Optional[DateResult]:
             if r:
                 return r
 
+    # Year only — last resort to avoid false matches on other numeric substrings
+    m = re.search(r"(?<!\d)(\d{4})(?!\d)", name)
+    if m:
+        r = _valid(int(m.group(1)))
+        if r:
+            return r
+
     return None
 
 
 def format_xmp_date(parsed: DateResult) -> str:
     """Format a DateResult as an XMP-compatible date string."""
     y, m, d = parsed
+    if m is None:
+        return f"{y:04d}"
     if d is not None:
         return f"{y:04d}-{m:02d}-{d:02d}"
     return f"{y:04d}-{m:02d}"
@@ -117,8 +127,12 @@ def format_xmp_date(parsed: DateResult) -> str:
 # Internal parsers
 # ---------------------------------------------------------------------------
 
-def _valid(y: int, m: int, d: Optional[int] = None) -> Optional[DateResult]:
-    if not (1900 <= y <= 2100 and 1 <= m <= 12):
+def _valid(y: int, m: Optional[int] = None, d: Optional[int] = None) -> Optional[DateResult]:
+    if not (1900 <= y <= 2100):
+        return None
+    if m is None:
+        return (y, None, None)
+    if not (1 <= m <= 12):
         return None
     if d is not None:
         try:
@@ -239,4 +253,11 @@ def _day_named_month_year(s: str) -> Optional[DateResult]:
         month = MONTH_NAMES.get(m.group(2).lower())
         if month:
             return _valid(int(m.group(1)), month, int(m.group(3)))
+    return None
+
+
+def _year_only(s: str) -> Optional[DateResult]:
+    """'1988', '2018'"""
+    if re.fullmatch(r"\d{4}", s):
+        return _valid(int(s))
     return None
