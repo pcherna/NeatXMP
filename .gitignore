@@ -1,0 +1,25 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# uv / packaging
+.venv/
+dist/
+*.egg-info/
+
+# pytest
+.pytest_cache/
+
+# macOS
+.DS_Store
+
+# Local config (never commit machine-specific settings)
+*.local.json
+*.local.toml
+*.local.env
+
+# IDE
+.idea/
+.vscode/
+*.swp
