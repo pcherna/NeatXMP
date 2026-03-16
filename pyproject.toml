@@ -4,7 +4,7 @@ version = "0.1.0"
 description = "Create or update XMP sidecar files from folder/file name dates"
 requires-python = ">=3.11"
 dependencies = [
-    "dearpygui>=1.9.0",
+    "pyside6>=6.6.0",
     "lxml>=5.0.0",
 ]
 
