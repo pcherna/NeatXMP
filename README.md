@@ -12,6 +12,8 @@ This tool was created primarily by interacting with [Claude Code](https://claude
 
 ## License
 
+This software is published under the MIT License — see [LICENSE](LICENSE).
+
 ## What it does
 
 NeatXMP creates or updates `.xmp` sidecar files alongside your media files, writing the date into the `xmp:CreateDate` and `photoshop:DateCreated` fields. It never touches the media files themselves.
