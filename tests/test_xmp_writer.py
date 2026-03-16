@@ -211,6 +211,27 @@ class TestUpdateExistingSidecar:
         apply_date_to_xmp(xmp_with_date, "2018-11")
         assert _read_photoshop_date(xmp_with_date.with_suffix(".xmp")) == "2018-11"
 
+    def test_backup_created_on_update(self, xmp_with_date):
+        apply_date_to_xmp(xmp_with_date, "2018-11")
+        assert xmp_with_date.with_suffix(".xmp_bak").exists()
+
+    def test_backup_contains_original_content(self, xmp_with_date):
+        apply_date_to_xmp(xmp_with_date, "2018-11")
+        bak = xmp_with_date.with_suffix(".xmp_bak").read_text()
+        assert "2000-01-01" in bak
+
+    def test_backup_overwritten_on_second_update(self, xmp_with_date):
+        apply_date_to_xmp(xmp_with_date, "2018-11")
+        apply_date_to_xmp(xmp_with_date, "2019-06")
+        bak = xmp_with_date.with_suffix(".xmp_bak").read_text()
+        # Backup should reflect the state before the second update (2018-11)
+        assert "2018-11" in bak
+        assert "2000-01-01" not in bak
+
+    def test_no_backup_on_create(self, tmp_img):
+        apply_date_to_xmp(tmp_img, "2018-11")
+        assert not tmp_img.with_suffix(".xmp_bak").exists()
+
     def test_update_multiple_times(self, xmp_with_date):
         apply_date_to_xmp(xmp_with_date, "2018-11")
         apply_date_to_xmp(xmp_with_date, "2019-06-15")

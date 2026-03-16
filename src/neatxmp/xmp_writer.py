@@ -11,6 +11,7 @@ Fields written:
 from __future__ import annotations
 
 import re
+import shutil
 from pathlib import Path
 
 from lxml import etree
@@ -48,6 +49,7 @@ def apply_date_to_xmp(media_path: Path, date_str: str) -> None:
     """Create or update the .xmp sidecar for *media_path*, setting date fields."""
     xmp_path = media_path.with_suffix(".xmp")
     if xmp_path.exists():
+        shutil.copy2(xmp_path, xmp_path.with_suffix(".xmp_bak"))
         _update_xmp(xmp_path, date_str)
     else:
         _create_xmp(xmp_path, date_str)
