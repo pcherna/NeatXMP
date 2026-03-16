@@ -2,12 +2,14 @@
 
 from __future__ import annotations
 
+from datetime import datetime
 from pathlib import Path
 
 import dearpygui.dearpygui as dpg
 
 from .date_parser import find_date_in_name, format_xmp_date
 from .settings import load as load_settings, save as save_settings
+from .xmp_reader import read_xmp_dates
 from .xmp_writer import apply_date_to_xmp
 
 MEDIA_EXTENSIONS = frozenset({".jpg", ".jpeg", ".png", ".heic", ".mp4", ".mov"})
@@ -41,7 +43,7 @@ def main() -> None:
         # --- Folder selector ---
         dpg.add_text("Folder")
         with dpg.group(horizontal=True):
-            dpg.add_button(label="Browse...", callback=lambda: dpg.show_item("folder_dialog"))
+            dpg.add_button(label="Browse...", callback=_browse)
             dpg.add_text(_folder or "(none)", tag="folder_display")
 
         dpg.add_spacer(height=8)
@@ -63,6 +65,13 @@ def main() -> None:
 
         # --- Action buttons ---
         with dpg.group(horizontal=True):
+            dpg.add_button(
+                label="Scan",
+                callback=_scan,
+                width=100,
+                height=40,
+            )
+            dpg.add_spacer(width=8)
             dpg.add_button(
                 label="Apply Folder Name as Date",
                 callback=_apply_folder_date,
@@ -108,6 +117,12 @@ def main() -> None:
 # ---------------------------------------------------------------------------
 # Folder selection
 # ---------------------------------------------------------------------------
+
+def _browse() -> None:
+    if _folder:
+        dpg.configure_item("folder_dialog", default_path=_folder)
+    dpg.show_item("folder_dialog")
+
 
 def _on_folder_selected(sender: str, app_data: dict) -> None:
     global _folder
@@ -163,6 +178,44 @@ def _current_folder() -> Path | None:
 # ---------------------------------------------------------------------------
 # Action callbacks
 # ---------------------------------------------------------------------------
+
+def _scan() -> None:
+    folder = _current_folder()
+    if folder is None:
+        return
+
+    files = _media_files(folder)
+    _log(f"[SCAN] {folder.name}  ({len(files)} media file(s))\n")
+
+    if not files:
+        _log("  (no matching media files)")
+        return
+
+    # Gather rows first so we can compute column widths
+    rows: list[tuple[str, str, str]] = []
+    for media_file in files:
+        fs_date = datetime.fromtimestamp(media_file.stat().st_mtime).strftime("%Y-%m-%d %H:%M")
+
+        xmp_path = media_file.with_suffix(".xmp")
+        if xmp_path.exists():
+            dates = read_xmp_dates(xmp_path)
+            xmp_col = "  |  ".join(f"{k}: {v}" for k, v in dates.items()) if dates else "(no dates)"
+        else:
+            xmp_col = "(no sidecar)"
+
+        rows.append((media_file.name, fs_date, xmp_col))
+
+    # Column widths
+    w0 = max(len(r[0]) for r in rows)
+    w1 = max(len(r[1]) for r in rows)
+
+    header = f"  {'Filename':<{w0}}  {'FS Modified':<{w1}}  XMP dates"
+    _log(header)
+    _log("  " + "-" * (len(header) + 4))
+    for name, fs_date, xmp_col in rows:
+        _log(f"  {name:<{w0}}  {fs_date:<{w1}}  {xmp_col}")
+    _log("")
+
 
 def _apply_folder_date() -> None:
     folder = _current_folder()
