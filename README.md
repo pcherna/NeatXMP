@@ -2,6 +2,16 @@
 
 A desktop tool for stamping XMP sidecar files with dates parsed from folder or file names. Useful for organising photo and video archives where the date lives in the folder or filename but not in the metadata.
 
+I made this tool for myself, to help with folders full of pictures that I scanned. I tend to use date strings in either the file names or folder names, and this tool will apply the date into the XMP sidecar so that photo tools recognize those dates.
+
+**Lightly tested, still a work in progress.**
+
+## AI Disclosure
+
+This tool was created primarily by interacting with [Claude Code](https://claude.ai). I am code reviewing and testing in various degrees as I proceed. Use at your own risk.
+
+## License
+
 ## What it does
 
 NeatXMP creates or updates `.xmp` sidecar files alongside your media files, writing the date into the `xmp:CreateDate` and `photoshop:DateCreated` fields. It never touches the media files themselves.
